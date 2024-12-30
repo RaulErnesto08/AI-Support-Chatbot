@@ -3,3 +3,11 @@ uvicorn
 python-dotenv
 pyarrow=="12.0.0"
 streamlit
+requests
+openai
+tenacity
+langchain
+pinecone-client
+langchain-community
+langchain-openai
+langchain-pinecone
