@@ -22,16 +22,21 @@ def fetch_message():
         return f"An unexpected error occurred: {e}"
 
 def fetch_user_input(user_message):
+    """
+    Sends user input to the backend and retrieves the chatbot's response.
+    """
     try:
         logger.info(f"Sending user input to backend: {user_message}")
         response = requests.post(
             f"{BACKEND_URL}/process-input",
-            json={"user_message": user_message},
+            json={"message": user_message},
             timeout=5,
         )
+        
         response.raise_for_status()
         chatbot_response = response.json().get("response", "No response received.")
         logger.info(f"Received chatbot response from backend: {chatbot_response}")
+        
         return chatbot_response
     except requests.exceptions.RequestException as e:
         logger.error(f"API error: {e}")
