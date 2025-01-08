@@ -33,7 +33,7 @@ def call_openai_formatter(langchain_response: str) -> dict:
             "type": "object",
             "properties": {
                 "response_type": {"type": "string", "enum": ["intent", "text"]},
-                "intent": {"type": ["string", "null"]},
+                "intent": {"type": ["string", "null"], "enum": ["create_order", "cancel_order", "escalate_to_human", None]},
                 "content": {"type": "string"},
                 "order_details": {
                     "type": ["object", "null"],
@@ -57,14 +57,15 @@ def call_openai_formatter(langchain_response: str) -> dict:
         f"Transform the following response into a valid JSON format based on the schema provided:\n\n"
         f"### Rules:\n"
         f"1. Always classify the response into one of the following 'response_type' categories:\n"
-        f"   - 'intent': For task-related actions such as the order is created or the order is cancelled.\n"
+        f"   - 'intent': For task-related actions such as the order is created, the order is cancelled, or needs to escalate to a human.\n"
         f"   - 'text': For general responses not associated with specific tasks.\n"
-        f"2. If 'response_type' is 'intent', ensure the 'intent' field is set to the appropriate task name ('create_order', 'cancel_order').\n"
+        f"2. If 'response_type' is 'intent', ensure the 'intent' field is set to the appropriate task name ('create_order', 'cancel_order', 'escalate_to_human').\n"
         f"3. If 'response_type' is 'text', set 'intent' to null.\n"
         f"4. For 'intent' responses, include 'order_details' with the following fields: 'order_number', 'size', 'toppings', 'name', and 'status'.\n"
         f"5. Once you detected the order is beign completed or canceled, mark the response_type as intent accordingly.\n"
-        f"6. For 'text' responses, set 'order_details' to null.\n"
-        f"7. Ensure the response adheres strictly to the schema.\n\n"
+        f"6. If the query cannot be resolved due to missing details or complexity, escalate it by setting the intent to 'escalate_to_human'.\n"
+        f"7. For 'text' responses, set 'order_details' to null.\n"
+        f"8. Ensure the response adheres strictly to the schema.\n\n"
         f"### Response:\n{langchain_response}\n\n"
         f"### Output:\n"
     )

@@ -7,7 +7,8 @@ from langchain_core.output_parsers import StrOutputParser
 from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 
 from app.utils.openai_utils import call_openai_formatter
-from app.utils.langchain_utils import construct_langchain_prompt, perform_mocked_action
+from app.utils.langchain_utils import construct_langchain_prompt
+from app.utils.actions_utils import perform_mocked_action, perform_escalation_action
 
 load_dotenv()
 router = APIRouter()
@@ -49,7 +50,13 @@ async def process_input(request: Request):
         # Perform action based on intent
         action_result = None
         if formatted_response["response_type"] == "intent":
-            action_result = perform_mocked_action(formatted_response["intent"], formatted_response)
+            intent = formatted_response["intent"]
+
+            if intent == "escalate_to_human":
+                action_result = perform_escalation_action(formatted_response)
+            else:
+                action_result = perform_mocked_action(intent, formatted_response)
+
 
         # Update chat history
         chat_history.append({"role": "user", "content": user_message})
