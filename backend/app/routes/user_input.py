@@ -8,7 +8,7 @@ from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 
 from app.utils.openai_utils import call_openai_formatter
 from app.utils.langchain_utils import construct_langchain_prompt
-from app.utils.actions_utils import perform_mocked_action, perform_escalation_action
+from app.utils.actions_utils import perform_mocked_action, perform_escalation_action, analyze_sentiment_transformers
 
 load_dotenv()
 router = APIRouter()
@@ -34,6 +34,10 @@ async def process_input(request: Request):
 
         if not user_message:
             raise HTTPException(status_code=400, detail="Message cannot be empty.")
+        
+        # Analyze sentiment
+        sentiment = analyze_sentiment_transformers(user_message)
+        logger.info(f"User sentiment: {sentiment}")
 
         # Retrieve context using LangChain and Pinecone
         results = vector_store.similarity_search(user_message, k=2)
@@ -68,6 +72,7 @@ async def process_input(request: Request):
             "response": formatted_response["content"],
             "action_result": action_result,
             "order_details": formatted_response.get("order_details"),
+            "sentiment": sentiment,
         }
 
     except Exception as e:

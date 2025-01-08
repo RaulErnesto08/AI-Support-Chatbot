@@ -1,6 +1,8 @@
+from transformers import pipeline
 from app.utils.logging_config import setup_logger
 
 logger = setup_logger()
+sentiment_pipeline = pipeline("sentiment-analysis")
 
 def perform_mocked_action(intent: str, response_data: dict) -> str:
     """Perform a mocked action based on the detected intent."""
@@ -21,3 +23,16 @@ def perform_escalation_action(response_data: dict) -> str:
     
     logger.warning(f"Escalating issue to human agent: {response_data}")
     return "Your query has been escalated to a human agent. Please wait for further assistance."
+
+def analyze_sentiment_transformers(text: str) -> str:
+    """
+    Analyze sentiment of the given text using Hugging Face Transformers.
+    Returns: 'positive', 'neutral', or 'negative'.
+    """
+    result = sentiment_pipeline(text)[0]
+    label = result["label"].lower()
+    print(f"Sentiment Analysis Result: {result}")
+    print(f"Sentiment Label: {label}")
+    if label in ["positive", "neutral", "negative"]:
+        return label
+    return "neutral"

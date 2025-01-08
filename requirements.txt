@@ -11,3 +11,7 @@ pinecone-client
 langchain-community
 langchain-openai
 langchain-pinecone
+transformers
+torch
+torchvision
+torchaudio
