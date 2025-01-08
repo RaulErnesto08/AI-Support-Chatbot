@@ -1,20 +1,24 @@
 from pydantic import BaseModel
+from dotenv import load_dotenv
 from app.utils.logging_config import setup_logger
 from langchain_pinecone import PineconeVectorStore
 from fastapi import APIRouter, Request, HTTPException
-from app.utils.langchain_utils import setup_langchain
-from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 
+from app.utils.openai_utils import call_openai_formatter
+from app.utils.langchain_utils import construct_langchain_prompt, perform_mocked_action
+
+load_dotenv()
 router = APIRouter()
 logger = setup_logger()
-chatbot_chain = setup_langchain()
 
 namespace = "faqs"
 index_name = "chatbot"
 embeddings = OpenAIEmbeddings(model="text-embedding-3-small")
 vector_store = PineconeVectorStore(index_name=index_name, embedding=embeddings, namespace=namespace)
+chat_model = ChatOpenAI(model="gpt-4o-mini", temperature=0.7)
+parser = StrOutputParser()
 
 chat_history = []
 
@@ -30,45 +34,35 @@ async def process_input(request: Request):
         if not user_message:
             raise HTTPException(status_code=400, detail="Message cannot be empty.")
 
-        # Query the Pinecone vector store
+        # Retrieve context using LangChain and Pinecone
         results = vector_store.similarity_search(user_message, k=2)
-        if not results:
-            logger.warning("No relevant documents found in Pinecone.")
-            raise HTTPException(status_code=404, detail="No relevant data found.")
+        context = "\n".join([doc.page_content for doc in results]) if results else "No relevant documents found."
 
-        # Prepare the context for the prompt
-        context = "\n".join([doc.page_content for doc in results])
+        # Generate response from LangChain
+        langchain_prompt = construct_langchain_prompt(context, user_message, chat_history)
+        langchain_response = chat_model | parser
+        langchain_output = langchain_response.invoke(langchain_prompt)
 
-        # Set up the prompt
-        prompt_template = ChatPromptTemplate.from_messages([
-            ("system", "{context}"),
-            ("user", "{prompt}"),
-        ])
-        
-        prompt = {
-            "context": context,
-            "prompt": user_message,
-        }
+        # Format response using OpenAI Formatter
+        formatted_response = call_openai_formatter(langchain_output)
 
-        # Chat model and response generation
-        model = ChatOpenAI()
-        parser = StrOutputParser()
-        chain = prompt_template | model | parser
-        response_text = chain.invoke(prompt)
+        # Perform action based on intent
+        action_result = None
+        if formatted_response["response_type"] == "intent":
+            action_result = perform_mocked_action(formatted_response["intent"], formatted_response)
 
         # Update chat history
         chat_history.append({"role": "user", "content": user_message})
-        chat_history.append({"role": "assistant", "content": response_text})
+        chat_history.append({"role": "assistant", "content": formatted_response["content"]})
+        
+        print(f"Chat History: \n{chat_history}")
 
-        # Log interactions
-        logger.info(f"User: {user_message}")
-        logger.info(f"Chatbot: {response_text}")
+        return {
+            "response": formatted_response["content"],
+            "action_result": action_result,
+            "order_details": formatted_response.get("order_details"),
+        }
 
-        return {"response": response_text}
-
-    except HTTPException as http_exc:
-        logger.error(f"HTTP error: {http_exc.detail}")
-        raise http_exc
     except Exception as e:
-        logger.error(f"Unexpected error: {str(e)}")
+        logger.error(f"Error processing input: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail="An unexpected error occurred.")
