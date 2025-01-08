@@ -13,7 +13,7 @@ logger = logging.getLogger("frontend_logger")
 
 def fetch_message():
     try:
-        response = requests.get(f"{BACKEND_URL}/message", timeout=5)
+        response = requests.get(f"{BACKEND_URL}/message", timeout=10000)
         response.raise_for_status()
         return response.json().get("chatbot_message", "No message received.")
     except requests.exceptions.RequestException as e:
@@ -30,17 +30,18 @@ def fetch_user_input(user_message):
         response = requests.post(
             f"{BACKEND_URL}/process-input",
             json={"message": user_message},
-            timeout=5,
+            timeout=10000,
         )
         
         response.raise_for_status()
-        chatbot_response = response.json().get("response", "No response received.")
+        chatbot_response = response.json()
         logger.info(f"Received chatbot response from backend: {chatbot_response}")
         
         return chatbot_response
     except requests.exceptions.RequestException as e:
-        logger.error(f"API error: {e}")
-        return f"API error: {e}"
+        error_message = f"API error: {e.response.text if e.response else str(e)}"
+        logger.error(error_message)
+        return {"error": error_message}
     except Exception as e:
         logger.error(f"Unexpected error: {e}")
-        return f"An unexpected error occurred: {e}"
+        return {"error": f"An unexpected error occurred: {e}"}

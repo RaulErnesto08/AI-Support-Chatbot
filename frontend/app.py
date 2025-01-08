@@ -1,5 +1,4 @@
 import streamlit as st
-
 from utils.api_utils import fetch_user_input
 
 st.set_page_config(page_title="AI Support Chatbot", layout="wide")
@@ -20,7 +19,18 @@ if user_message := st.chat_input("Enter your message:"):
 
     with st.chat_message("assistant"):
         with st.spinner("Please wait..."):
-            assistant_response = fetch_user_input(user_message)
-        st.markdown(assistant_response)
-    
-    st.session_state.messages.append({"role": "assistant", "content": assistant_response})
+            response = fetch_user_input(user_message)
+
+        # Validate the response and extract necessary fields
+        if isinstance(response, dict):
+            content = response.get("response", "No response provided.")
+            action_result = response.get("action_result", None)
+
+            st.markdown(content)
+
+            st.session_state.messages.append({"role": "assistant", "content": content})
+
+            if action_result:
+                 st.toast(f"{action_result}", icon="✅")
+        else:
+            st.error("Unexpected response format from backend.")
