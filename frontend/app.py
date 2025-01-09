@@ -54,7 +54,6 @@ if user_message := st.chat_input("Enter your message:"):
             )
 
             if action_result:
-                 st.toast(f"{action_result}", icon="✅")
+                st.toast(f"{action_result}", icon="✅")
         else:
             st.error("Unexpected response format from backend.")
-

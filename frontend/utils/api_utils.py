@@ -45,3 +45,12 @@ def fetch_user_input(user_message):
     except Exception as e:
         logger.error(f"Unexpected error: {e}")
         return {"error": f"An unexpected error occurred: {e}"}
+
+def process_audio_file(audio_file):
+    """Send audio file to backend and process it."""
+    response = requests.post(
+        f"{BACKEND_URL}/process-audio",
+        files={"file": ("audio.wav", audio_file, "audio/wav")}
+    )
+    response.raise_for_status()
+    return response.json()
