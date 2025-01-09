@@ -2,7 +2,7 @@ services:
   backend:
     build:
       context: .
-      dockerfile: backend/Dockerfile
+      dockerfile: backend/app/Dockerfile
     container_name: ai_support_chatbot_backend
     ports:
       - "8000:8000"
